@@ -14,8 +14,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Explicitly providing the Project ID to ensure the correct database is used.
-const firestore = new Firestore({ projectId: 'gcp-demo-02-307713' });
+// Explicitly providing the Project ID and the specific Database ID to ensure the correct database is used.
+const firestore = new Firestore({ 
+    projectId: 'gcp-demo-02-307713',
+    databaseId: 'vibecodingchallenge2' 
+});
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET;
 
