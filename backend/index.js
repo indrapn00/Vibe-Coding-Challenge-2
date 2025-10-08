@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const { Firestore } = require('@google-cloud/firestore');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -13,11 +13,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// This should be automatically configured in Cloud Functions environment
-const firestore = new Firestore({
-    databaseId: 'vibecodingchallenge2'
-});
-const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+// Initialize Firestore with the specific database ID as requested.
+const firestore = new Firestore({ databaseId: 'vibecodingchallenge2' });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!process.env.API_KEY || !JWT_SECRET) {
@@ -85,6 +83,11 @@ app.post('/signin', async (req, res) => {
         const userDoc = snapshot.docs[0];
         const userData = userDoc.data();
         
+        // Defensive check for password existence
+        if (!userData.password) {
+             return res.status(401).json({ error: 'Invalid email or password.' });
+        }
+
         const isPasswordValid = await bcrypt.compare(password, userData.password);
         if (!isPasswordValid) {
             return res.status(401).json({ error: 'Invalid email or password.' });
@@ -102,7 +105,9 @@ app.post('/signin', async (req, res) => {
 app.get('/links', authMiddleware, async (req, res) => {
     try {
         const linksRef = firestore.collection('links');
-        const snapshot = await linksRef.where('userId', '==', req.user.id).orderBy('createdAt', 'desc').get();
+        // Removed .orderBy('createdAt', 'desc') to avoid potential index errors.
+        // Sorting is handled on the client-side.
+        const snapshot = await linksRef.where('userId', '==', req.user.id).get();
         
         const links = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.status(200).json(links);
@@ -120,14 +125,14 @@ app.post('/links', authMiddleware, async (req, res) => {
 
     try {
         // 1. Process URL with Gemini API
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
         const prompt = `Analyze the content of the following URL: ${url}. Based on its content, provide a concise one-paragraph summary, a suitable title for a bookmark, and a list of 3-5 relevant lowercase tags. Your entire response must be a single JSON object with the keys: 'title', 'summary', and 'tags' (an array of strings). Do not include any text or formatting outside of this JSON object.`;
         
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        
-        const cleanedJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+        });
+
+        const cleanedJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
         const processedData = JSON.parse(cleanedJson);
 
         // 2. Create and save the new link item
