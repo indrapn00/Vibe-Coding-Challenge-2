@@ -4,7 +4,6 @@ const { Firestore } = require('@google-cloud/firestore');
 const { GoogleGenAI, Type } = require('@google/genai');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const functions = require('@google-cloud/functions-framework');
 
 // Load environment variables from .env file for local development
 // In Cloud Functions, these should be set as environment variables in the deployment config.
@@ -153,5 +152,5 @@ app.post('/links', authMiddleware, async (req, res) => {
     }
 });
 
-// Expose the Express app as a single Cloud Function
-functions.http('api', app);
+// Expose the Express app as a single Cloud Function for 2nd Gen
+exports.api = app;
