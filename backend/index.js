@@ -1,12 +1,11 @@
+
 const express = require('express');
 const cors = require('cors');
 const { Firestore } = require('@google-cloud/firestore');
-const { GoogleGenAI, Type } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// Load environment variables from .env file for local development
-// In Cloud Functions, these should be set as environment variables in the deployment config.
 require('dotenv').config();
 
 // --- INITIALIZATION ---
@@ -14,13 +13,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Explicitly providing the Project ID to ensure the correct project is used.
-// The databaseId is omitted to use the default Firestore database, which is
-// where your data is most likely stored.
-const firestore = new Firestore({ 
-    projectId: 'gcp-demo-02-307713'
+// This should be automatically configured in Cloud Functions environment
+const firestore = new Firestore({
+    databaseId: 'vibecodingchallenge2'
 });
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!process.env.API_KEY || !JWT_SECRET) {
@@ -68,11 +65,8 @@ app.post('/signup', async (req, res) => {
         const token = jwt.sign({ userId: newUserRef.id, email }, JWT_SECRET, { expiresIn: '1d' });
         res.status(201).json({ email, token });
     } catch (error) {
-        console.error('SIGNUP_ERROR_DETAILS:', error);
-        if (error.code === 7 || (error.message && error.message.toLowerCase().includes('permission denied'))) {
-            return res.status(500).json({ error: 'Database permission denied. Please check service account roles for Firestore access.' });
-        }
-        res.status(500).json({ error: 'An internal error occurred during signup.' });
+        console.error('Error during signup:', error);
+        res.status(500).json({ error: 'An internal error occurred.' });
     }
 });
 
@@ -90,19 +84,8 @@ app.post('/signin', async (req, res) => {
 
         const userDoc = snapshot.docs[0];
         const userData = userDoc.data();
-
-        if (!userData.password || typeof userData.password !== 'string') {
-            console.error(`Authentication failed for ${email}: User record is missing a valid password hash.`);
-            return res.status(401).json({ error: 'Invalid email or password.' });
-        }
-
-        let isPasswordValid = false;
-        try {
-            isPasswordValid = await bcrypt.compare(password, userData.password);
-        } catch (bcryptError) {
-            console.error(`Bcrypt comparison failed for user ${email}. This may be due to an invalid password hash stored in the database.`, bcryptError);
-        }
         
+        const isPasswordValid = await bcrypt.compare(password, userData.password);
         if (!isPasswordValid) {
             return res.status(401).json({ error: 'Invalid email or password.' });
         }
@@ -110,11 +93,8 @@ app.post('/signin', async (req, res) => {
         const token = jwt.sign({ userId: userDoc.id, email: userData.email }, JWT_SECRET, { expiresIn: '1d' });
         res.status(200).json({ email: userData.email, token });
     } catch (error) {
-        console.error('SIGNIN_ERROR_DETAILS:', error);
-        if (error.code === 7 || (error.message && error.message.toLowerCase().includes('permission denied'))) {
-            return res.status(500).json({ error: 'Database permission denied. Please check service account roles for Firestore access.' });
-        }
-        res.status(500).json({ error: 'An internal error occurred during signin.' });
+        console.error('Error during signin:', error);
+        res.status(500).json({ error: 'An internal error occurred.' });
     }
 });
 
@@ -122,15 +102,12 @@ app.post('/signin', async (req, res) => {
 app.get('/links', authMiddleware, async (req, res) => {
     try {
         const linksRef = firestore.collection('links');
-        const snapshot = await linksRef.where('userId', '==', req.user.id).get();
+        const snapshot = await linksRef.where('userId', '==', req.user.id).orderBy('createdAt', 'desc').get();
         
         const links = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.status(200).json(links);
     } catch (error) {
-        console.error('GET_LINKS_ERROR_DETAILS:', error);
-        if (error.code === 7 || (error.message && error.message.toLowerCase().includes('permission denied'))) {
-            return res.status(500).json({ error: 'Database permission denied. Please check service account roles for Firestore access.' });
-        }
+        console.error('Error fetching links:', error);
         res.status(500).json({ error: 'Failed to retrieve links.' });
     }
 });
@@ -143,26 +120,15 @@ app.post('/links', authMiddleware, async (req, res) => {
 
     try {
         // 1. Process URL with Gemini API
-        const responseSchema = {
-            type: Type.OBJECT,
-            properties: {
-                title: { type: Type.STRING },
-                summary: { type: Type.STRING },
-                tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-            },
-            required: ["title", "summary", "tags"],
-        };
-        const prompt = `Analyze the content of the URL: ${url}. Provide a concise one-paragraph summary, a suitable title, and 3-5 relevant lowercase tags. Respond with a single JSON object with keys: 'title', 'summary', and 'tags'.`;
-
-        const geminiResponse = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: responseSchema,
-            },
-        });
-        const processedData = JSON.parse(geminiResponse.text);
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const prompt = `Analyze the content of the following URL: ${url}. Based on its content, provide a concise one-paragraph summary, a suitable title for a bookmark, and a list of 3-5 relevant lowercase tags. Your entire response must be a single JSON object with the keys: 'title', 'summary', and 'tags' (an array of strings). Do not include any text or formatting outside of this JSON object.`;
+        
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        const cleanedJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const processedData = JSON.parse(cleanedJson);
 
         // 2. Create and save the new link item
         const newLink = {
@@ -177,13 +143,10 @@ app.post('/links', authMiddleware, async (req, res) => {
         const docRef = await firestore.collection('links').add(newLink);
         res.status(201).json({ id: docRef.id, ...newLink });
     } catch (error) {
-        console.error('ADD_LINK_ERROR_DETAILS:', error);
-         if (error.code === 7 || (error.message && error.message.toLowerCase().includes('permission denied'))) {
-            return res.status(500).json({ error: 'Database permission denied. Please check service account roles for Firestore access.' });
-        }
+        console.error('Error adding link:', error);
         res.status(500).json({ error: 'Failed to analyze or save the link.' });
     }
 });
 
-// Expose the Express app as a single Cloud Function for 2nd Gen
+// Expose the Express app as a single Cloud Function
 exports.api = app;
