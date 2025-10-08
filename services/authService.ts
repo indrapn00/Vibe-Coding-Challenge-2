@@ -2,7 +2,7 @@ import { User } from '../types';
 
 // IMPORTANT: Replace this with your actual Cloud Function URL from the deployment step.
 // Example: https://api-ab12cde-uc.a.run.app
-const API_BASE_URL = 'https://api-ab12cde-uc.a.run.app'; 
+const API_BASE_URL = 'https://asia-southeast2-gcp-demo-02-307713.cloudfunctions.net/api'; 
 const SESSION_KEY = 'gemini-link-aggregator-session';
 
 export const signUp = async (email: string, password: string): Promise<User> => {

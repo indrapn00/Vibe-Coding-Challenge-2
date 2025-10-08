@@ -2,7 +2,7 @@ import { LinkItem } from '../types';
 import { getCurrentUser } from './authService';
 
 // IMPORTANT: Replace this with your actual Cloud Function URL from the deployment step.
-const API_BASE_URL = 'https://api-ab12cde-uc.a.run.app';
+const API_BASE_URL = 'https://asia-southeast2-gcp-demo-02-307713.cloudfunctions.net/api';
 
 const getAuthHeaders = (): Record<string, string> => {
     const user = getCurrentUser();

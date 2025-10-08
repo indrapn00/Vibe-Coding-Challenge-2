@@ -38,6 +38,11 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
+// --- ROOT ROUTE ---
+app.get('/', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'Link Summarizer API is running.' });
+});
+
 // --- AUTH ROUTES ---
 app.post('/signup', async (req, res) => {
     const { email, password } = req.body;
