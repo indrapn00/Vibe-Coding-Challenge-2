@@ -88,14 +88,21 @@ app.post('/signin', async (req, res) => {
         const userDoc = snapshot.docs[0];
         const userData = userDoc.data();
 
-        // Defensively check if the password field exists before attempting to compare.
-        // This prevents a server crash if an old user record is missing this field.
         if (!userData.password || typeof userData.password !== 'string') {
             console.error(`Authentication failed for ${email}: User record is missing a valid password hash.`);
             return res.status(401).json({ error: 'Invalid email or password.' });
         }
 
-        const isPasswordValid = await bcrypt.compare(password, userData.password);
+        let isPasswordValid = false;
+        try {
+            // This can throw an error if userData.password is not a valid hash format.
+            // By wrapping it, we prevent a server crash and treat it as a failed comparison.
+            isPasswordValid = await bcrypt.compare(password, userData.password);
+        } catch (bcryptError) {
+            console.error(`Bcrypt comparison failed for user ${email}. This may be due to an invalid password hash stored in the database.`, bcryptError);
+            // isPasswordValid remains false, ensuring the login fails gracefully.
+        }
+        
         if (!isPasswordValid) {
             return res.status(401).json({ error: 'Invalid email or password.' });
         }
