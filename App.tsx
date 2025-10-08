@@ -21,7 +21,9 @@ const MainApp: React.FC<{ user: User; onLogout: () => void }> = ({ user, onLogou
       try {
         setIsFetchingLinks(true);
         const loadedLinks = await getLinks();
-        setLinks(loadedLinks);
+        // Sort links by createdAt date in descending order (newest first)
+        const sortedLinks = loadedLinks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setLinks(sortedLinks);
       } catch (err: any) {
         setError("Could not fetch your links. Please try again later.");
         console.error(err);

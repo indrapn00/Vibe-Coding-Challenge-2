@@ -14,10 +14,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Explicitly providing the Project ID and the specific Database ID to ensure the correct database is used.
+// Explicitly providing the Project ID to ensure the correct project is used.
+// The databaseId is omitted to use the default Firestore database, which is
+// where your data is most likely stored.
 const firestore = new Firestore({ 
-    projectId: 'gcp-demo-02-307713',
-    databaseId: 'vibecodingchallenge2' 
+    projectId: 'gcp-demo-02-307713'
 });
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -104,7 +105,7 @@ app.post('/signin', async (req, res) => {
 app.get('/links', authMiddleware, async (req, res) => {
     try {
         const linksRef = firestore.collection('links');
-        const snapshot = await linksRef.where('userId', '==', req.user.id).orderBy('createdAt', 'desc').get();
+        const snapshot = await linksRef.where('userId', '==', req.user.id).get();
         
         const links = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.status(200).json(links);
