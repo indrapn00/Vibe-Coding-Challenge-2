@@ -1,6 +1,5 @@
 import React from 'react';
 import { User } from '../types';
-import { LogoutIcon, UserIcon } from './icons';
 
 interface HeaderProps {
     user: User | null;
@@ -16,17 +15,15 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
       <p className="text-slate-400 mt-2">Your personal AI-powered link aggregator.</p>
       {user && (
         <div className="absolute top-0 right-0 flex items-center gap-4">
-            <div className="flex items-center gap-2 text-slate-300">
-                <UserIcon className="w-5 h-5" />
+            <div className="flex items-center text-slate-300">
                 <span className="text-sm font-medium hidden sm:inline">{user.email}</span>
             </div>
             <button
                 onClick={onLogout}
-                className="flex items-center gap-2 bg-slate-700 text-slate-300 font-bold py-2 px-3 rounded-lg hover:bg-slate-600 hover:text-white transition-colors"
+                className="bg-slate-700 text-slate-300 font-bold py-2 px-3 rounded-lg hover:bg-slate-600 hover:text-white transition-colors"
                 aria-label="Sign out"
             >
-                <LogoutIcon className="w-5 h-5" />
-                <span className="text-sm hidden sm:inline">Sign Out</span>
+                <span className="text-sm">Sign Out</span>
             </button>
         </div>
       )}

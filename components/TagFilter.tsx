@@ -1,5 +1,4 @@
 import React from 'react';
-import { TagIcon } from './icons';
 
 interface TagFilterProps {
   tags: string[];
@@ -10,8 +9,7 @@ interface TagFilterProps {
 const TagFilter: React.FC<TagFilterProps> = ({ tags, activeTag, onSelectTag }) => {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-slate-100 mb-4 flex items-center gap-2">
-        <TagIcon className="w-6 h-6" />
+      <h2 className="text-2xl font-bold text-slate-100 mb-4">
         Filter by Tags
       </h2>
       <div className="flex flex-wrap gap-2">

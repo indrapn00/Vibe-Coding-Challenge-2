@@ -1,6 +1,5 @@
 import React from 'react';
 import { LinkItem } from '../types';
-import { LinkIcon } from './icons';
 
 interface LinkCardProps {
   link: LinkItem;
@@ -25,9 +24,8 @@ const LinkCard: React.FC<LinkCardProps> = ({ link }) => {
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition-colors text-sm font-medium"
+          className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm font-medium"
         >
-          <LinkIcon className="w-4 h-4" />
           <span>Read Original</span>
         </a>
       </div>

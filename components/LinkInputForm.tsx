@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { PlusIcon } from './icons';
 
 interface LinkInputFormProps {
   onAddLink: (url: string) => void;
@@ -33,7 +32,7 @@ const LinkInputForm: React.FC<LinkInputFormProps> = ({ onAddLink, isLoading, err
             />
             <button
                 type="submit"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-900 disabled:cursor-not-allowed disabled:text-slate-400 transition-colors"
+                className="w-full sm:w-auto flex items-center justify-center bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-900 disabled:cursor-not-allowed disabled:text-slate-400 transition-colors"
                 disabled={isLoading}
             >
                 {isLoading ? (
@@ -45,10 +44,7 @@ const LinkInputForm: React.FC<LinkInputFormProps> = ({ onAddLink, isLoading, err
                         Processing...
                     </>
                 ) : (
-                    <>
-                        <PlusIcon className="w-5 h-5" />
-                        Add Link
-                    </>
+                    'Add Link'
                 )}
             </button>
         </form>
