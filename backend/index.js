@@ -69,7 +69,10 @@ app.post('/signup', async (req, res) => {
         res.status(201).json({ email, token });
     } catch (error) {
         console.error('SIGNUP_ERROR_DETAILS:', error);
-        res.status(500).json({ error: 'An internal error occurred.' });
+        if (error.code === 7 || (error.message && error.message.toLowerCase().includes('permission denied'))) {
+            return res.status(500).json({ error: 'Database permission denied. Please check service account roles for Firestore access.' });
+        }
+        res.status(500).json({ error: 'An internal error occurred during signup.' });
     }
 });
 
@@ -95,12 +98,9 @@ app.post('/signin', async (req, res) => {
 
         let isPasswordValid = false;
         try {
-            // This can throw an error if userData.password is not a valid hash format.
-            // By wrapping it, we prevent a server crash and treat it as a failed comparison.
             isPasswordValid = await bcrypt.compare(password, userData.password);
         } catch (bcryptError) {
             console.error(`Bcrypt comparison failed for user ${email}. This may be due to an invalid password hash stored in the database.`, bcryptError);
-            // isPasswordValid remains false, ensuring the login fails gracefully.
         }
         
         if (!isPasswordValid) {
@@ -111,7 +111,10 @@ app.post('/signin', async (req, res) => {
         res.status(200).json({ email: userData.email, token });
     } catch (error) {
         console.error('SIGNIN_ERROR_DETAILS:', error);
-        res.status(500).json({ error: 'An internal error occurred.' });
+        if (error.code === 7 || (error.message && error.message.toLowerCase().includes('permission denied'))) {
+            return res.status(500).json({ error: 'Database permission denied. Please check service account roles for Firestore access.' });
+        }
+        res.status(500).json({ error: 'An internal error occurred during signin.' });
     }
 });
 
@@ -125,6 +128,9 @@ app.get('/links', authMiddleware, async (req, res) => {
         res.status(200).json(links);
     } catch (error) {
         console.error('GET_LINKS_ERROR_DETAILS:', error);
+        if (error.code === 7 || (error.message && error.message.toLowerCase().includes('permission denied'))) {
+            return res.status(500).json({ error: 'Database permission denied. Please check service account roles for Firestore access.' });
+        }
         res.status(500).json({ error: 'Failed to retrieve links.' });
     }
 });
@@ -172,6 +178,9 @@ app.post('/links', authMiddleware, async (req, res) => {
         res.status(201).json({ id: docRef.id, ...newLink });
     } catch (error) {
         console.error('ADD_LINK_ERROR_DETAILS:', error);
+         if (error.code === 7 || (error.message && error.message.toLowerCase().includes('permission denied'))) {
+            return res.status(500).json({ error: 'Database permission denied. Please check service account roles for Firestore access.' });
+        }
         res.status(500).json({ error: 'Failed to analyze or save the link.' });
     }
 });
