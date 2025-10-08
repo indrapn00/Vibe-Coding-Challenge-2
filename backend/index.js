@@ -14,7 +14,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const firestore = new Firestore();
+// Explicitly providing the Project ID to ensure the correct database is used.
+const firestore = new Firestore({ projectId: 'gcp-demo-02-307713' });
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET;
 
