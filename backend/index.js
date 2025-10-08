@@ -64,7 +64,7 @@ app.post('/signup', async (req, res) => {
         const token = jwt.sign({ userId: newUserRef.id, email }, JWT_SECRET, { expiresIn: '1d' });
         res.status(201).json({ email, token });
     } catch (error) {
-        console.error('Signup error:', error);
+        console.error('SIGNUP_ERROR_DETAILS:', error);
         res.status(500).json({ error: 'An internal error occurred.' });
     }
 });
@@ -92,7 +92,7 @@ app.post('/signin', async (req, res) => {
         const token = jwt.sign({ userId: userDoc.id, email: userData.email }, JWT_SECRET, { expiresIn: '1d' });
         res.status(200).json({ email: userData.email, token });
     } catch (error) {
-        console.error('Signin error:', error);
+        console.error('SIGNIN_ERROR_DETAILS:', error);
         res.status(500).json({ error: 'An internal error occurred.' });
     }
 });
@@ -106,7 +106,7 @@ app.get('/links', authMiddleware, async (req, res) => {
         const links = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.status(200).json(links);
     } catch (error) {
-        console.error('Get links error:', error);
+        console.error('GET_LINKS_ERROR_DETAILS:', error);
         res.status(500).json({ error: 'Failed to retrieve links.' });
     }
 });
@@ -153,7 +153,7 @@ app.post('/links', authMiddleware, async (req, res) => {
         const docRef = await firestore.collection('links').add(newLink);
         res.status(201).json({ id: docRef.id, ...newLink });
     } catch (error) {
-        console.error('Add link error:', error);
+        console.error('ADD_LINK_ERROR_DETAILS:', error);
         res.status(500).json({ error: 'Failed to analyze or save the link.' });
     }
 });
